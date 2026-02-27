@@ -1,0 +1,84 @@
+# configs/default.yaml
+# ─────────────────────────────────────────────
+# Phase 0: Problem Framing & Metric Definition
+# ─────────────────────────────────────────────
+
+project:
+  name: marketplace_search
+  version: "0.1.0"
+  seed: 42
+
+paths:
+  raw_reviews:   data/raw/Arts_txt.gz
+  raw_brands:    data/raw/brands_txt.gz
+  processed_dir: data/processed
+  artifacts_dir: data/artifacts
+  logs_dir:      data/logs
+
+data:
+  # Implicit label thresholds
+  positive_threshold: 4      # score >= 4  → positive interaction
+  negative_threshold: 2      # score <= 2  → negative interaction
+  # neutral: 3 (ignored by default)
+
+  # Time-based split fractions (must sum to 1.0)
+  train_frac: 0.70
+  val_frac:   0.15
+  test_frac:  0.15
+
+  # Minimum interactions per user to be included
+  min_user_interactions: 2
+
+  # Minimum reviews per product to be included
+  min_product_reviews: 1
+
+evaluation:
+  # Retrieval metrics
+  recall_k:  [1, 5, 10, 20, 50]
+  ndcg_k:    [5, 10, 20]
+  mrr_k:     100          # cutoff for MRR computation
+
+  # Personalization
+  hit_rate_k: [5, 10, 20]
+
+  # Repeat-user definition: users with >= this many interactions
+  repeat_user_min_interactions: 3
+
+  # System
+  latency_percentiles: [50, 95, 99]   # in ms
+  max_p95_latency_ms: 100
+
+logging:
+  # Experiment bucketing
+  num_buckets: 2
+  hash_field:  user_id
+
+  # Impression log fields (informational — used in serving)
+  impression_fields:
+    - request_id
+    - user_id
+    - query_text
+    - candidate_ids
+    - predicted_scores
+    - timestamp
+    - experiment_bucket
+
+# ─────────────────────────────────────────────
+# Phase 1: Data Engineering & TF-IDF Retrieval
+# ─────────────────────────────────────────────
+
+catalog:
+  max_summary_words: 30
+
+queries:
+  strategy: "title"
+  ngram_sizes: [2, 3]
+  max_queries_per_product: 3
+  seed: 42
+
+tfidf:
+  max_features: 50000
+  ngram_range: [1, 2]
+  min_df: 1
+  sublinear_tf: true
+  retrieval_k: 200

@@ -1,0 +1,115 @@
+data/
+saved_files/
+
+############################
+# Python
+############################
+__pycache__/
+*.py[cod]
+*$py.class
+
+############################
+# Virtual Environments
+############################
+.venv/
+venv/
+env/
+ENV/
+.env
+
+############################
+# IDE / Editors
+############################
+.vscode/
+.idea/
+*.swp
+*.swo
+
+############################
+# Jupyter
+############################
+.ipynb_checkpoints/
+
+############################
+# OS Files
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# Logs
+############################
+logs/
+*.log
+wandb/
+mlruns/
+tensorboard/
+events.out.tfevents.*
+
+############################
+# Model Checkpoints
+############################
+checkpoints/
+models/
+*.pt
+*.pth
+*.bin
+*.ckpt
+
+############################
+# FAISS Index Files
+############################
+*.index
+*.faiss
+*.ivf
+*.pq
+
+############################
+# Embeddings / Numpy Artifacts
+############################
+embeddings/
+*.npy
+*.npz
+*.pkl
+*.pickle
+
+############################
+# Large Datasets
+############################
+data/raw/
+data/processed/
+*.gz
+*.zip
+*.tar
+*.csv
+*.parquet
+
+############################
+# Experiment Outputs
+############################
+outputs/
+results/
+reports/
+
+############################
+# Cache
+############################
+.cache/
+.huggingface/
+torch_cache/
+
+############################
+# Secrets / Keys
+############################
+*.pem
+*.key
+*.crt
+*.json
+config_local.py
+credentials.py
+
+############################
+# Docker (if added later)
+############################
+*.env
+docker-compose.override.yml
