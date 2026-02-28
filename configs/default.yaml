@@ -98,3 +98,25 @@ dual_encoder:
   grad_clip_norm: 1.0
   temperature: 0.05
   retrieval_k: 200
+# ─────────────────────────────────────────────
+# Phase 3: FAISS-Based Scalable Retrieval
+# ─────────────────────────────────────────────
+phase3:
+  batch_size: 128
+  query_batch_size: 64
+  retrieval_k: 100
+
+  # ANN choice: ivf_flat (or hnsw)
+  ann_index_type: ivf_flat
+
+  # IVF tuning knobs
+  ivf_nlist_options: [64, 128, 256, 512]
+  ivf_nprobe: 16
+
+  # HNSW knobs (used when ann_index_type = hnsw)
+  hnsw_m: 32
+  hnsw_ef_search: 64
+
+  # Targets
+  target_p95_latency_ms: 50
+  max_recall_drop: 0.02

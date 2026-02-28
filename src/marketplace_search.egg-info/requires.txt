@@ -1,0 +1,17 @@
+pandas>=2.0
+numpy>=1.24
+pyarrow>=12.0
+pyyaml>=6.0
+
+[dev]
+pytest>=7.0
+pytest-cov>=4.0
+ruff>=0.1
+
+[ranking]
+lightgbm>=4.0
+
+[retrieval]
+scikit-learn>=1.3
+sentence-transformers>=2.2
+faiss-cpu>=1.7

@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: marketplace_search
+Version: 0.1.0
+Summary: Marketplace Search & Personalization Engine — Phase 0
+Requires-Python: >=3.9
+Requires-Dist: pandas>=2.0
+Requires-Dist: numpy>=1.24
+Requires-Dist: pyarrow>=12.0
+Requires-Dist: pyyaml>=6.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: ruff>=0.1; extra == "dev"
+Provides-Extra: retrieval
+Requires-Dist: scikit-learn>=1.3; extra == "retrieval"
+Requires-Dist: sentence-transformers>=2.2; extra == "retrieval"
+Requires-Dist: faiss-cpu>=1.7; extra == "retrieval"
+Provides-Extra: ranking
+Requires-Dist: lightgbm>=4.0; extra == "ranking"
