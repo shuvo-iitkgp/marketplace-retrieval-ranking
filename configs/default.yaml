@@ -9,22 +9,22 @@ project:
   seed: 42
 
 paths:
-  raw_reviews:   data/raw/Arts_txt.gz
-  raw_brands:    data/raw/brands_txt.gz
+  raw_reviews: data/raw/Arts_txt.gz
+  raw_brands: data/raw/brands_txt.gz
   processed_dir: data/processed
   artifacts_dir: data/artifacts
-  logs_dir:      data/logs
+  logs_dir: data/logs
 
 data:
   # Implicit label thresholds
-  positive_threshold: 4      # score >= 4  → positive interaction
-  negative_threshold: 2      # score <= 2  → negative interaction
+  positive_threshold: 4 # score >= 4  → positive interaction
+  negative_threshold: 2 # score <= 2  → negative interaction
   # neutral: 3 (ignored by default)
 
   # Time-based split fractions (must sum to 1.0)
   train_frac: 0.70
-  val_frac:   0.15
-  test_frac:  0.15
+  val_frac: 0.15
+  test_frac: 0.15
 
   # Minimum interactions per user to be included
   min_user_interactions: 2
@@ -34,9 +34,9 @@ data:
 
 evaluation:
   # Retrieval metrics
-  recall_k:  [1, 5, 10, 20, 50]
-  ndcg_k:    [5, 10, 20]
-  mrr_k:     100          # cutoff for MRR computation
+  recall_k: [1, 5, 10, 20, 50]
+  ndcg_k: [5, 10, 20]
+  mrr_k: 100 # cutoff for MRR computation
 
   # Personalization
   hit_rate_k: [5, 10, 20]
@@ -45,13 +45,13 @@ evaluation:
   repeat_user_min_interactions: 3
 
   # System
-  latency_percentiles: [50, 95, 99]   # in ms
+  latency_percentiles: [50, 95, 99] # in ms
   max_p95_latency_ms: 100
 
 logging:
   # Experiment bucketing
   num_buckets: 2
-  hash_field:  user_id
+  hash_field: user_id
 
   # Impression log fields (informational — used in serving)
   impression_fields:
@@ -81,4 +81,20 @@ tfidf:
   ngram_range: [1, 2]
   min_df: 1
   sublinear_tf: true
+  retrieval_k: 200
+
+# ─────────────────────────────────────────────
+# Phase 2: Dual-Encoder Retrieval
+# ─────────────────────────────────────────────
+dual_encoder:
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+  shared_weights: true
+  max_length: 64
+  batch_size: 32
+  eval_batch_size: 64
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  epochs: 2
+  grad_clip_norm: 1.0
+  temperature: 0.05
   retrieval_k: 200
