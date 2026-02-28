@@ -168,3 +168,15 @@ phase6:
   long_tail_quantile: 0.2
 
   catalog_embeddings_filename: phase3_catalog_embeddings.npy
+
+# ─────────────────────────────────────────────
+# Phase 7: Logging + A/B Test Readiness
+# ─────────────────────────────────────────────
+phase7:
+  eval_k: 10
+  offline_ab_n_requests: 2000
+  expected_min_ndcg_lift: 0.01
+
+  guardrails:
+    max_null_result_rate: 0.01
+    max_p95_latency_ms: 100
