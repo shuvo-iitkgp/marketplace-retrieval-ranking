@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-
+from collections import defaultdict
 import numpy as np
 import pandas as pd
 
@@ -11,6 +11,18 @@ class RerankerArtifacts:
     product_feature_table: pd.DataFrame
     user_category_affinity: dict[tuple[str, str], float]
 
+ExposureStore = dict[tuple[str, str], float]
+
+
+@dataclass
+class ConstrainedExploreExploitConfig:
+    epsilon: float = 0.05
+    alpha: float = 0.05
+    top_pool_k: int = 50
+    eval_k: int = 10
+    max_per_category: int = 3
+    broad_entropy_threshold: float = 1.0
+    exposure_decay: float = 0.99
 
 def resolve_category_column(catalog_df: pd.DataFrame) -> str:
     """Resolve category column name across dataset versions."""
@@ -214,4 +226,126 @@ def compute_permutation_feature_importance(model, x: np.ndarray, y: np.ndarray, 
                 if np.isnan(score):
                     score = 0.0
             importances.append({"feature": name, "importance_mean": score, "importance_std": 0.0})
+        # return sorted(importances, key=lambda d: d["importance_mean"], reverse=True)
         return sorted(importances, key=lambda d: d["importance_mean"], reverse=True)
+
+def build_exposure_store() -> ExposureStore:
+    return defaultdict(float)
+
+
+def novelty_bonus(query_cluster_id: str, product_id: str, exposure_store: ExposureStore) -> float:
+    exposure = float(exposure_store.get((str(query_cluster_id), str(product_id)), 0.0))
+    return float(1.0 / np.sqrt(1.0 + exposure))
+
+
+def apply_decay_to_cluster(exposure_store: ExposureStore, query_cluster_id: str, decay: float) -> None:
+    cluster = str(query_cluster_id)
+    for key in list(exposure_store.keys()):
+        if key[0] == cluster:
+            exposure_store[key] = float(decay) * float(exposure_store[key])
+
+
+def update_exposure_store(
+    exposure_store: ExposureStore,
+    query_cluster_id: str,
+    shown_product_ids: list[str],
+    decay: float,
+    eval_k: int,
+) -> None:
+    cluster = str(query_cluster_id)
+    apply_decay_to_cluster(exposure_store, cluster, decay=decay)
+    for pid in shown_product_ids[: int(eval_k)]:
+        key = (cluster, str(pid))
+        exposure_store[key] = float(exposure_store.get(key, 0.0)) + 1.0
+
+
+def _is_broad_query(query_cluster_entropy: float, query_text: str, entropy_threshold: float) -> bool:
+    short_query = len(str(query_text).split()) < 3
+    return bool(float(query_cluster_entropy) >= float(entropy_threshold) or short_query)
+
+
+def _apply_diversity_cap(
+    ranked_frame: pd.DataFrame,
+    eval_k: int,
+    max_per_category: int,
+) -> pd.DataFrame:
+    category_counts: dict[str, int] = defaultdict(int)
+    selected_idx: list[int] = []
+    skipped_idx: list[int] = []
+    for row in ranked_frame.itertuples():
+        category = str(row.candidate_category)
+        if category_counts[category] < int(max_per_category):
+            selected_idx.append(int(row.Index))
+            category_counts[category] += 1
+            if len(selected_idx) >= int(eval_k):
+                break
+        else:
+            skipped_idx.append(int(row.Index))
+
+    if len(selected_idx) < int(eval_k):
+        for idx in skipped_idx:
+            if idx not in selected_idx:
+                selected_idx.append(idx)
+            if len(selected_idx) >= int(eval_k):
+                break
+
+    selected = ranked_frame.loc[selected_idx].copy()
+    selected["final_rank"] = np.arange(1, len(selected) + 1)
+    return selected
+
+
+def rerank_with_constrained_explore_exploit(
+    candidate_df: pd.DataFrame,
+    exposure_store: ExposureStore,
+    cfg: ConstrainedExploreExploitConfig,
+    seed: int = 42,
+) -> tuple[pd.DataFrame, ExposureStore]:
+    rng = np.random.default_rng(seed)
+    rows: list[pd.DataFrame] = []
+
+    for _, query_df in candidate_df.groupby("query_idx", sort=True):
+        query_df = query_df.copy()
+        cluster_id = str(query_df["query_cluster_id"].iloc[0])
+        query_text = str(query_df.get("query_text", pd.Series([""])).iloc[0])
+        entropy = float(query_df.get("query_cluster_entropy", pd.Series([0.0])).iloc[0])
+
+        query_df["base_score"] = query_df["base_score"].astype(float)
+        query_df["novelty_bonus"] = [
+            novelty_bonus(cluster_id, pid, exposure_store)
+            for pid in query_df["candidate_product_id"].astype(str)
+        ]
+        query_df["final_score"] = query_df["base_score"] + float(cfg.alpha) * query_df["novelty_bonus"]
+
+        baseline = query_df.sort_values("base_score", ascending=False, kind="mergesort")
+        safe_k = min(int(cfg.top_pool_k), len(baseline))
+        safe_pool = baseline.iloc[:safe_k].copy()
+        outside_pool = baseline.iloc[safe_k:].copy()
+
+        explore = bool(rng.random() < float(cfg.epsilon))
+        if explore:
+            safe_pool = safe_pool.sort_values("final_score", ascending=False, kind="mergesort")
+
+        ranked = pd.concat([safe_pool, outside_pool], ignore_index=False)
+        ranked = ranked.sort_values(["base_score"], ascending=False, kind="mergesort") if not explore else ranked
+
+        broad = _is_broad_query(entropy, query_text, cfg.broad_entropy_threshold)
+        if broad:
+            top = _apply_diversity_cap(ranked, eval_k=cfg.eval_k, max_per_category=cfg.max_per_category)
+        else:
+            top = ranked.head(int(cfg.eval_k)).copy()
+            top["final_rank"] = np.arange(1, len(top) + 1)
+
+        update_exposure_store(
+            exposure_store,
+            query_cluster_id=cluster_id,
+            shown_product_ids=top["candidate_product_id"].astype(str).tolist(),
+            decay=float(cfg.exposure_decay),
+            eval_k=int(cfg.eval_k),
+        )
+        top["did_explore"] = int(explore)
+        rows.append(top)
+
+    return pd.concat(rows, ignore_index=True), exposure_store
+
+
+

@@ -145,3 +145,26 @@ phase5:
   ctr_smoothing: 10.0
   user_affinity_smoothing: 5.0
   catalog_embeddings_filename: phase3_catalog_embeddings.npy
+# ─────────────────────────────────────────────
+# Phase 6: Constrained Explore-Exploit Reranking
+# ─────────────────────────────────────────────
+phase6:
+  batch_size: 128
+  candidate_k: 200
+  eval_k: 10
+  use_reranker_prob: true
+
+  # exposure + novelty
+  exposure_decay: 0.99
+  epsilon_grid: [0.0, 0.01, 0.05, 0.1]
+  alpha_grid: [0.01, 0.05, 0.1]
+  top_pool_k_grid: [50]
+
+  # intent-aware diversity
+  entropy_threshold: 1.0
+  max_per_category_grid: [3]
+
+  # long-tail metric
+  long_tail_quantile: 0.2
+
+  catalog_embeddings_filename: phase3_catalog_embeddings.npy

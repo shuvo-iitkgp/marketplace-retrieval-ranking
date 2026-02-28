@@ -278,3 +278,38 @@ def compute_all_metrics(
         results[f"hit_rate@{k}"] = hit_rate_at_k(relevant_ids, retrieved_ids, k)
 
     return results
+
+
+def coverage_at_k(retrieved_ids: List[Sequence], k: int, catalog_size: int) -> float:
+    if catalog_size <= 0:
+        return 0.0
+    unique_items = {item for row in retrieved_ids for item in list(row)[:k]}
+    return float(len(unique_items) / float(catalog_size))
+
+
+def long_tail_at_k(
+    retrieved_ids: List[Sequence],
+    popularity_map: dict[str, float],
+    bottom_quantile_threshold: float,
+    k: int,
+) -> float:
+    impressions: list[str] = [str(item) for row in retrieved_ids for item in list(row)[:k]]
+    if not impressions:
+        return 0.0
+    bottom = {pid for pid, score in popularity_map.items() if float(score) <= float(bottom_quantile_threshold)}
+    long_tail_hits = sum(1 for pid in impressions if pid in bottom)
+    return float(long_tail_hits / len(impressions))
+
+
+def category_entropy_at_k(retrieved_categories: List[Sequence], k: int) -> float:
+    entropies: list[float] = []
+    for cats in retrieved_categories:
+        top = [str(c) for c in list(cats)[:k]]
+        if not top:
+            entropies.append(0.0)
+            continue
+        _, counts = np.unique(np.array(top), return_counts=True)
+        probs = counts / counts.sum()
+        entropy = -np.sum(probs * np.log2(np.clip(probs, 1e-12, 1.0)))
+        entropies.append(float(entropy))
+    return float(np.mean(entropies)) if entropies else 0.0
