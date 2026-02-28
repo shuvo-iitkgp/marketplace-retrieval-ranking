@@ -130,3 +130,18 @@ phase4:
   decay_lambda: 0.01
   alpha_grid: [0.2, 0.4, 0.6, 0.8, 1.0]
   catalog_embeddings_filename: phase3_catalog_embeddings.npy
+
+# ─────────────────────────────────────────────
+# Phase 5: Two-Stage Reranking
+# ─────────────────────────────────────────────
+phase5:
+  batch_size: 128
+  candidate_k: 200
+  eval_k: 10
+  hidden_dim: 32
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  max_iter: 30
+  ctr_smoothing: 10.0
+  user_affinity_smoothing: 5.0
+  catalog_embeddings_filename: phase3_catalog_embeddings.npy
